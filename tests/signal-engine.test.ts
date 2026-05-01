@@ -30,11 +30,12 @@ describe("generateSignal", () => {
 
   // ── BUY signal ──
   test("generates BUY when price > SMA20 and RSI < 70", () => {
-    // Rising trend: price starts at 100, ends at 130
-    const data = createData(
-      Array(19).fill(null).map((_, i) => ({ close: 100 + i * 1 }))
-        .concat([{ close: 130 }])
-    );
+    // Volatile uptrend: flat base, dip, then strong rally — keeps RSI moderate
+    const closes = [
+      100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+      100, 80, 75, 80, 85, 90, 100, 110, 120, 130,
+    ];
+    const data = createData(closes.map((c) => ({ close: c })));
     const signal = generateSignal(data);
     expect(signal.action).toBe("BUY");
     expect(signal.stopLossType).toBe("strict");
@@ -44,12 +45,16 @@ describe("generateSignal", () => {
   });
 
   test("BUY stop-loss is below last 5-day low", () => {
-    const closes = Array(15).fill(100).concat([102, 104, 103, 105, 110]);
-    const data = createData(closes.map((c) => ({ close: c })));
+    // Volatile uptrend to keep RSI moderate
+    const closes = [
+      100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+      100, 80, 75, 80, 85, 90, 100, 110, 120, 130,
+    ];
+    const data = createData(closes.map((c) => ({ close: c, low: c - 2, high: c + 2 })));
     const signal = generateSignal(data);
     expect(signal.action).toBe("BUY");
-    const last5Low = Math.min(...closes.slice(-5));
-    expect(signal.stopLoss).toBeLessThanOrEqual(last5Low * 0.998);
+    const last5Low = Math.min(...data.slice(-5).map((d) => d.low));
+    expect(signal.stopLoss).toBeLessThanOrEqual(last5Low * 0.985);
   });
 
   test("does NOT buy when RSI > 70 (overbought)", () => {
@@ -60,13 +65,22 @@ describe("generateSignal", () => {
     expect(signal.action).not.toBe("BUY");
   });
 
+  test("does NOT buy when trend < 0.5% above SMA (too weak)", () => {
+    // Price barely above SMA — should be NEUTRAL
+    const closes = Array(19).fill(100).concat([100.3]);
+    const data = createData(closes.map((c) => ({ close: c })));
+    const signal = generateSignal(data);
+    expect(signal.action).toBe("NEUTRAL");
+  });
+
   // ── SELL signal ──
   test("generates SELL when price < SMA20 and RSI > 30", () => {
-    // Downtrend: price starts at 130, ends at 100
-    const data = createData(
-      Array(19).fill(null).map((_, i) => ({ close: 130 - i * 1 }))
-        .concat([{ close: 100 }])
-    );
+    // Volatile downtrend: flat base, rally, then strong decline — keeps RSI moderate
+    const closes = [
+      130, 130, 130, 130, 130, 130, 130, 130, 130, 130,
+      130, 150, 145, 150, 145, 140, 135, 125, 115, 100,
+    ];
+    const data = createData(closes.map((c) => ({ close: c })));
     const signal = generateSignal(data);
     expect(signal.action).toBe("SELL");
     expect(signal.stopLoss).toBeGreaterThan(data[data.length - 1].close);
@@ -74,12 +88,16 @@ describe("generateSignal", () => {
   });
 
   test("SELL stop-loss is above last 5-day high", () => {
-    const closes = Array(15).fill(100).concat([98, 96, 97, 95, 90]);
-    const data = createData(closes.map((c) => ({ close: c })));
+    // Volatile downtrend to keep RSI moderate
+    const closes = [
+      130, 130, 130, 130, 130, 130, 130, 130, 130, 130,
+      130, 150, 145, 150, 145, 140, 135, 125, 115, 100,
+    ];
+    const data = createData(closes.map((c) => ({ close: c, low: c - 2, high: c + 2 })));
     const signal = generateSignal(data);
     expect(signal.action).toBe("SELL");
-    const last5High = Math.max(...closes.slice(-5));
-    expect(signal.stopLoss).toBeGreaterThanOrEqual(last5High * 1.002);
+    const last5High = Math.max(...data.slice(-5).map((d) => d.high));
+    expect(signal.stopLoss).toBeGreaterThanOrEqual(last5High * 1.015);
   });
 
   test("does NOT sell when RSI < 30 (oversold)", () => {
@@ -119,17 +137,23 @@ describe("generateSignal", () => {
 
   // ── Confidence bounds ──
   test("confidence never exceeds 95", () => {
-    // Extreme trend to push confidence high
-    const closes = Array(19).fill(100).concat([200]);
+    // Strong volatile trend to push confidence high but RSI stays < 70
+    const closes = [
+      100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+      100, 70, 65, 70, 75, 80, 90, 110, 130, 160,
+    ];
     const data = createData(closes.map((c) => ({ close: c })));
     const signal = generateSignal(data);
     expect(signal.confidence).toBeLessThanOrEqual(95);
   });
 
   test("confidence never below 50 for valid signals", () => {
-    const data = createData(
-      Array(19).fill(null).map((_, i) => ({ close: 100 + i * 0.1 })).concat([{ close: 102 }])
-    );
+    // Weak but valid trend (>0.5% above SMA) with moderate RSI
+    const closes = [
+      100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+      100, 95, 100, 98, 102, 100, 104, 102, 106, 108,
+    ];
+    const data = createData(closes.map((c) => ({ close: c })));
     const signal = generateSignal(data);
     if (signal.action !== "NEUTRAL") {
       expect(signal.confidence).toBeGreaterThanOrEqual(50);
