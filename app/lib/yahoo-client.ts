@@ -10,15 +10,6 @@ const VALID_PERIODS: Record<Period, { range: string; interval: string }> = {
   "5y": { range: "5y", interval: "1mo" },
 };
 
-interface YahooQuote {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
 export async function fetchYahooHistory(
   symbol: string,
   period: Period
