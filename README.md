@@ -13,6 +13,14 @@ Next.js web app to track NSE (India) stocks across multiple timeframes with algo
 - Redis caching via Upstash (15min TTL)
 - Financial disclaimer on every view
 
+## Screenshots
+
+### Homepage
+![Trace Trade Homepage](./screenshots/homepage.png)
+
+### RELIANCE 1Y Signal
+![RELIANCE Buy Signal with Stop Loss](./screenshots/reliance.png)
+
 ## Tech Stack
 
 | Layer | Technology |
