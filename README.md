@@ -53,22 +53,9 @@ Optional: `ALPHA_VANTAGE_API_KEY` for fallback data source.
 3. Add environment variables in Project Settings → Environment Variables
 4. Deploy
 
-### GitHub Actions CI/CD
+### GitHub Actions CI
 
-Two workflows run automatically:
-
-- **CI** (`ci.yml`) — lint, type-check, test, build on every push/PR
-- **Deploy** (`deploy.yml`) — deploys to Vercel production after CI passes on `main`
-
-Required GitHub Secrets:
-
-| Secret | Description |
-|---|---|
-| `VERCEL_TOKEN` | Vercel personal access token |
-| `VERCEL_ORG_ID` | From `vercel teams list` |
-| `VERCEL_PROJECT_ID` | From project settings |
-| `UPSTASH_REDIS_REST_URL` | Redis REST URL |
-| `UPSTASH_REDIS_REST_TOKEN` | Redis REST token |
+`ci.yml` runs on every push/PR to `main`: lint, type-check, tests, and build verification. This catches errors before Vercel's own build. No deploy workflow needed — Vercel auto-deploys on `git push` via its native Git integration.
 
 ## API
 
